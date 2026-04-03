@@ -115,6 +115,7 @@ def save_image(tensor, path):
 def test(model, loader, device, save_dir="./Dense_images", n=10):
     os.makedirs(save_dir, exist_ok=True)
 
+    model.to(device)
     model.eval()
 
     criterion = nn.MSELoss()
@@ -123,38 +124,33 @@ def test(model, loader, device, save_dir="./Dense_images", n=10):
     x, _ = next(iter(loader))
     x = x[:n].to(device)
 
-    x_flat = x.view(n, -1)
+    # Dense tarvitsee flattenauksen
+    x_flat = x.view(x.size(0), -1)
 
-    # ---- Measure compute time ----
-    torch.cuda.synchronize() if torch.cuda.is_available() else None
+    # ---- Measure compute time (CPU safe) ----
     start_time = time.time()
 
     with torch.no_grad():
         x_hat = model(x_flat)
         loss = criterion(x_hat, x_flat)
 
-    torch.cuda.synchronize() if torch.cuda.is_available() else None
     end_time = time.time()
 
     inference_time = end_time - start_time
 
-    # ---- Memory transfer estimation ----
-    # Approx: bytes moved = input + output tensors (GPU)
+    # ---- Memory estimate (approx only) ----
     bytes_in = x.element_size() * x.nelement()
     bytes_out = x_hat.element_size() * x_hat.nelement()
-    total_bytes = bytes_in + bytes_out
-
-    # convert to MB
-    total_mb = total_bytes / (1024 ** 2)
+    total_mb = (bytes_in + bytes_out) / (1024 ** 2)
 
     # ---- Save images ----
-    x_hat_img = x_hat.view_as(x)  # reshape back if needed
+    # reshape back to image format
+    x_hat_img = x_hat.view_as(x)
 
     for i in range(n):
-        save_image(x[i], f"{save_dir}/original_{i}.jpg")
         save_image(x_hat_img[i], f"{save_dir}/recon_{i}.jpg")
 
-    print(f"\n--- TEST METRICS OF DENSE AUTOENCODER ---")
+    print(f"\n--- TEST METRICS (DENSE CPU) ---")
     print(f"Loss (MSE): {loss.item():.6f}")
     print(f"Inference time: {inference_time:.6f} s")
     print(f"Approx memory traffic: {total_mb:.2f} MB")

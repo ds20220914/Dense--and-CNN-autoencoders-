@@ -104,7 +104,7 @@ def save_image(tensor, path):
 
 # TEST FUNCTION
 
-def test(model, loader, device, save_dir="./Dense_images", n=10):
+def test(model, loader, device, save_dir="./CNN_images", n=10):
     os.makedirs(save_dir, exist_ok=True)
 
     model.to(device)
@@ -134,7 +134,6 @@ def test(model, loader, device, save_dir="./Dense_images", n=10):
 
     # ---- Save images ----
     for i in range(n):
-        save_image(x[i], f"{save_dir}/original_{i}.jpg")
         save_image(x_hat[i], f"{save_dir}/recon_{i}.jpg")
 
     print(f"\n--- TEST METRICS (CPU) ---")
